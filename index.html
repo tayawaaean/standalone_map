@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive County/Regional Map</title>
+    
+    <!-- Leaflet CSS - Required for map styling -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Container for the map */
+        .map-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1200px;
+            height: 80vh;
+            min-height: 500px;
+            position: relative;
+        }
+
+        /* Map element styling */
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Custom marker popup styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            padding: 20px;
+            min-width: 200px;
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            margin: -20px -20px 15px -20px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .popup-content {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .popup-content p {
+            margin: 8px 0;
+        }
+
+        .popup-content strong {
+            color: #667eea;
+            display: inline-block;
+            min-width: 100px;
+        }
+
+        /* Custom tooltip styling */
+        .custom-tooltip {
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        /* Legend styling */
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            font-size: 14px;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 8px;
+            border: 1px solid #ddd;
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .map-container {
+                height: 70vh;
+                min-height: 400px;
+                border-radius: 12px;
+            }
+
+            .map-legend {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            .popup-content {
+                font-size: 14px;
+            }
+        }
+
+        /* Animation for markers */
+        @keyframes markerPulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .leaflet-marker-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .leaflet-marker-icon:hover {
+            transform: scale(1.2);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Map container -->
+    <div class="map-container">
+        <div id="map"></div>
+        
+        <!-- Loading indicator -->
+        <div class="loading" id="loading">
+            Loading map...
+        </div>
+
+        <!-- Legend -->
+        <div class="map-legend">
+            <div class="legend-title">Regions</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #667eea;"></div>
+                <span>Primary Region</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #48bb78;"></div>
+                <span>Secondary Region</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ed8936;"></div>
+                <span>Tertiary Region</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JavaScript - Required for map functionality -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <script>
+        // Map data structure - Easy to update with your own regions/counties
+        // Each region contains: name, coordinates (lat, lng), color, and details
+        const mapData = [
+            {
+                name: "North County",
+                lat: 33.1581,
+                lng: -117.3506,
+                color: "#667eea",
+                category: "Primary Region",
+                population: "125,000",
+                area: "45.2 sq mi",
+                description: "Northern region with diverse communities and strong economic growth."
+            },
+            {
+                name: "Central County",
+                lat: 33.1215,
+                lng: -117.2878,
+                color: "#48bb78",
+                category: "Secondary Region",
+                population: "98,500",
+                area: "38.7 sq mi",
+                description: "Central hub with commercial districts and residential neighborhoods."
+            },
+            {
+                name: "South County",
+                lat: 33.0850,
+                lng: -117.2250,
+                color: "#ed8936",
+                category: "Tertiary Region",
+                population: "87,200",
+                area: "42.1 sq mi",
+                description: "Southern region known for its coastal areas and tourism."
+            },
+            {
+                name: "East County",
+                lat: 33.1400,
+                lng: -117.1000,
+                color: "#667eea",
+                category: "Primary Region",
+                population: "112,300",
+                area: "50.3 sq mi",
+                description: "Eastern region with mountain views and growing residential development."
+            },
+            {
+                name: "West County",
+                lat: 33.1000,
+                lng: -117.4000,
+                color: "#48bb78",
+                category: "Secondary Region",
+                population: "95,800",
+                area: "35.9 sq mi",
+                description: "Western region featuring beach communities and recreational areas."
+            }
+        ];
+
+        // Initialize the map
+        // Center coordinates - Update these to center on your region
+        const mapCenter = [33.1215, -117.2878]; // Default center (adjust for your area)
+        const mapZoom = 11; // Zoom level (adjust as needed: higher = more zoomed in)
+
+        // Create map instance
+        const map = L.map('map', {
+            center: mapCenter,
+            zoom: mapZoom,
+            zoomControl: true,
+            scrollWheelZoom: true
+        });
+
+        // Add tile layer (OpenStreetMap tiles - free and works everywhere)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Custom icon creation function
+        function createCustomIcon(color, name) {
+            // Create a custom SVG icon
+            const svgIcon = `
+                <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="16" cy="16" r="14" fill="${color}" stroke="white" stroke-width="2" opacity="0.9"/>
+                    <circle cx="16" cy="16" r="6" fill="white"/>
+                </svg>
+            `;
+            
+            return L.divIcon({
+                className: 'custom-marker',
+                html: svgIcon,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
+        }
+
+        // Create markers for each region
+        const markers = [];
+        mapData.forEach((region, index) => {
+            // Create custom icon with region color
+            const customIcon = createCustomIcon(region.color, region.name);
+            
+            // Create marker
+            const marker = L.marker([region.lat, region.lng], {
+                icon: customIcon
+            }).addTo(map);
+
+            // Create popup content with detailed information
+            const popupContent = `
+                <div class="popup-header">${region.name}</div>
+                <div class="popup-content">
+                    <p><strong>Category:</strong> ${region.category}</p>
+                    <p><strong>Population:</strong> ${region.population}</p>
+                    <p><strong>Area:</strong> ${region.area}</p>
+                    <p><strong>Description:</strong> ${region.description}</p>
+                </div>
+            `;
+
+            // Bind popup to marker
+            marker.bindPopup(popupContent, {
+                className: 'custom-popup',
+                maxWidth: 300
+            });
+
+            // Add hover tooltip
+            marker.on('mouseover', function(e) {
+                // Create custom tooltip
+                const tooltip = L.tooltip({
+                    permanent: false,
+                    direction: 'top',
+                    className: 'custom-tooltip'
+                })
+                .setContent(region.name)
+                .setLatLng([region.lat, region.lng])
+                .addTo(map);
+                
+                // Store tooltip reference
+                this.tooltip = tooltip;
+            });
+
+            // Remove tooltip on mouseout
+            marker.on('mouseout', function(e) {
+                if (this.tooltip) {
+                    map.removeLayer(this.tooltip);
+                    this.tooltip = null;
+                }
+            });
+
+            // Add click event with animation
+            marker.on('click', function(e) {
+                // Animate marker on click
+                const icon = this.getElement();
+                if (icon) {
+                    icon.style.animation = 'markerPulse 0.5s ease';
+                    setTimeout(() => {
+                        icon.style.animation = '';
+                    }, 500);
+                }
+                
+                // Open popup
+                this.openPopup();
+            });
+
+            // Store marker reference
+            markers.push(marker);
+        });
+
+        // Fit map to show all markers with padding
+        if (markers.length > 0) {
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        // Hide loading indicator once map is ready
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.getElementById('loading').classList.remove('active');
+            }, 500);
+        });
+
+        // Show loading indicator initially
+        document.getElementById('loading').classList.add('active');
+
+        // Handle window resize for responsive behavior
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                map.invalidateSize();
+            }, 250);
+        });
+
+        // Optional: Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Close all popups on Escape key
+                map.closePopup();
+            }
+        });
+    </script>
+</body>
+</html>
+

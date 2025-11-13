@@ -37,6 +37,28 @@ A standalone, embeddable interactive map built with Leaflet.js that works on any
 
 Simply open `interactive-map.html` in a web browser - it works completely standalone!
 
+### Option 4: Deploy to Vercel
+
+The project is configured for easy deployment to Vercel:
+
+1. **Using Vercel CLI:**
+   ```bash
+   npm install -g vercel
+   vercel
+   ```
+   Follow the prompts to deploy. The map will be available at your Vercel URL.
+
+2. **Using Vercel Dashboard:**
+   - Push your code to GitHub/GitLab/Bitbucket
+   - Go to [vercel.com](https://vercel.com)
+   - Click "New Project" and import your repository
+   - Vercel will automatically detect the configuration and deploy
+
+3. **After deployment:**
+   - Your map will be live at `https://your-project.vercel.app`
+   - The `index.html` file serves as the main route (`/`)
+   - You can embed it using: `<iframe src="https://your-project.vercel.app"></iframe>`
+
 ## Customization Guide
 
 ### Updating Map Data
